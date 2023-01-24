@@ -12,6 +12,13 @@ X = "X"
 O = "O"
 EMPTY = None
 
+class Node():
+    def __init__(self, state, parent, action):
+        self.state = state
+        self.parent = parent
+        self.action = action
+        
+
 
 def initial_state():
     """
@@ -59,8 +66,7 @@ def result(board, action):
 
     board_new[action[0]][action[1]] = player(board=board)
 
-    print(f"Board for action {action}")
-    print_board(board_new)
+    
     return board_new
 
 
@@ -142,17 +148,26 @@ def minimax(board):
     actions_opt = []
     recommended_action = ()
 
+
     if player(board) == "X": 
         utility_opt, actions_opt, d = maxValue(board)
     else: 
-        print("STARTING HERE")
         utility_opt, actions_opt, d = minValue(board)
     
-    print(actions_opt)
-    if len(actions_opt) > 0: recommended_action = actions_opt[0]
-    else: recommended_action = actions(board).pop()
+    if len(actions_opt) > 0: 
+        min_moves = 99
+        recommended_action = ()
 
-    print(f"Recommended Action: {recommended_action}")
+        for a in actions_opt:
+            if a[1] < min_moves:
+                min_moves = a[1]
+                recommended_action = a[0]
+        
+    else: 
+        print("choosing anything")
+        recommended_action = actions(board).pop()
+
+    
     
     return recommended_action
 
@@ -162,42 +177,47 @@ def maxValue(board, d=0):
     value = -2
     actionValues = []
 
+    di = d + 1
     if terminal(board):
-        print("TERMINAL FOUND!!!!")
+        
         return utility(board), actionValues, d
 
-    print("MAX called", end=" ")
+    
     for a in actions(board):
-        print(a)
-        min_val = minValue(result(board, a),d = d+1)
+        
+        min_val = minValue(result(board, a), d = di)
         value = max(value, min_val[0])
 
         # recommended action will always take first in action array. so optimal solutions are inserted ad pos 0, draw-solutions at the end. 
-        if value == 1: actionValues.insert(0,[a, min_val[2]])
-        elif value == 0: actionValues.append(a)
+        if value == 1: 
+            actionValues.insert(0,[a, min_val[2]])
+            break
+        elif value == 0: actionValues.append([a, 0])
 
-    return value, actionValues, d
+    return value, actionValues, min_val[2]
 
 
-def minValue(board,d=0):
+def minValue(board, d=0):
     
     value = 2
     actionValues = []
 
+    di = d + 1
     if terminal(board):
         return utility(board), actionValues, d
     
-    print("MIN Called", end=" ")
+    
     for a in actions(board):
-        print(a)
-        min_val = maxValue(result(board, a), d = d+1)
+        min_val = maxValue(result(board, a), d = di)
         value = min(value, min_val[0])
         
         # recommended action will always take first in action array. so optimal solutions are inserted ad pos 0, draw-solutions at the end. 
-        if value == -1: actionValues.insert(0,[a,min_val[2]])
-        elif value == 0: actionValues.append(a)
+        if value == -1: 
+            actionValues.insert(0,[a,min_val[2]])
+            break
+        elif value == 0: actionValues.append([a, 0])
 
-    return value, actionValues, d
+    return value, actionValues, min_val[2]
 
 
 def print_board(board):
@@ -207,8 +227,6 @@ def print_board(board):
     print("\n")
 
 
-if __name__ == "__main__":
-    board = initial_state()
-    winner(board)
+
 
 
