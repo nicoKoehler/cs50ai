@@ -1,6 +1,6 @@
 from logic import *
 
-rain = Symbol("rain") #it is raininh
+rain = Symbol("rain") #it is raining
 hagrid = Symbol("hagrid") #harry visited hagrid
 dumbledore = Symbol("dumbledore") #hagrid visited dumbledore
 
