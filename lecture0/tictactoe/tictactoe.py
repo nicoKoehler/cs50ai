@@ -4,8 +4,7 @@ Tic Tac Toe Player
 
 import math
 import copy
-import cst_exceptions as cste
-import random
+
 
 
 X = "X"
@@ -62,7 +61,7 @@ def result(board, action):
     """
     board_new = copy.deepcopy(board) 
 
-    if action not in actions(board=board): raise cste.InvalidMoveException
+    if action not in actions(board=board): raise ValueError
 
     board_new[action[0]][action[1]] = player(board=board)
 
@@ -143,7 +142,7 @@ def minimax(board):
 
     if terminal(board): return None
     #If the board is empty, open with a random move
-    if board == initial_state(): return random.choice(list(actions(board)))
+    if board == initial_state(): return actions(board).pop()
 
     actions_opt = []
     recommended_action = ()
