@@ -95,6 +95,7 @@ class Sentence():
         self.cells = set(cells)
         self.count = count
 
+
     def __eq__(self, other):
         return self.cells == other.cells and self.count == other.count
 
@@ -111,6 +112,7 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be safe.
         """
+
         raise NotImplementedError
 
     def mark_mine(self, cell):
@@ -118,14 +120,20 @@ class Sentence():
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
-        raise NotImplementedError
+
+        if cell in self.cells:
+            self.cells = self.cells - cell
+            self.count -= 1
+        
 
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        raise NotImplementedError
+        
+        if cell in self.cells:
+            self.cells = self.cells - cell
 
 
 class MinesweeperAI():
@@ -182,7 +190,46 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-        raise NotImplementedError
+
+        self.moves_made.add(cell)
+        self.mark_safe(cell)
+        self.knowledge.append(Sentence(cell, 0))
+        #add safe cells separately, otherwise it would need to be popped out and returned later
+        neighbours = self.find_neighbour_cells(cell)
+        if neighbours: self.knowledge.append(Sentence(neighbours, count))
+
+        #sort, so it only has to traverse nxn/2, instead of n x n
+        knowledge_sorted = sorted(self.knowledge, key=lambda x: len(x.cells))
+        print(knowledge_sorted)
+        for m, sentence_from in enumerate(knowledge_sorted):
+            for sentence_to in knowledge_sorted[m+1:]:
+                print(m, sentence_from)
+                if sentence_from.cells in sentence_to.cells and sentence_from.count < sentence_to.count: 
+                    sentence_new = sentence_to.cells - sentence_from.cells
+                    count_new = sentence_to.count - sentence_from.count
+
+                    self.knowledge.append(Sentence(sentence_new, count_new))
+                    
+                    if count_new == 0 and len(sentence_new) > 0:
+                        for c in sentence_new:
+                            self.mark_safe(c)
+                    
+                    elif count_new == len(sentence_new) and len(sentence_new) > 0:
+                        for c in sentence_new:
+                            self.mark_mine(c)
+
+                    
+
+
+
+
+    def show_knowledge(self):
+        for i,k in enumerate(self.knowledge):
+            print(f"{i+1}{{{k}}}")
+
+
+
+
 
     def make_safe_move(self):
         """
@@ -203,3 +250,22 @@ class MinesweeperAI():
             2) are not known to be mines
         """
         raise NotImplementedError
+
+    def find_neighbour_cells(self, cell):
+        """
+        Returns a set of all neighbouring cells for a given cell, within bounds of the board
+        """
+        neighbours = set()
+        
+    
+        for i in range(-1, 2):
+            for j in range(-1,2):
+                if 0 <= (cell[0] +i) < self.height and 0 <= (cell[1] + j) < self.width and ((cell[0]+i, cell[1]+j) != cell):
+                    neighbours.add((cell[0]+i, cell[1]+j))
+
+                
+
+        return neighbours
+
+
+    
