@@ -123,9 +123,10 @@ class Sentence():
         a cell is known to be a mine.
         """
 
-        if cell in self.cells:
-            self.cells = self.cells - cell
+        if cell in self.cells and len(self.cells) > 1:
+            self.cells = self.cells - set({cell})
             self.count -= 1
+
         
 
     def mark_safe(self, cell):
@@ -134,8 +135,8 @@ class Sentence():
         a cell is known to be safe.
         """
         
-        if cell in self.cells:
-            self.cells = self.cells - set(cell)
+        if cell in self.cells and len(self.cells) > 1:
+            self.cells = self.cells - set({cell})
 
 
 class MinesweeperAI():
@@ -143,7 +144,7 @@ class MinesweeperAI():
     Minesweeper game player
     """
 
-    def __init__(self, height=8, width=8):
+    def __init__(self, height=3, width=3):
 
         # Set initial height and width
         self.height = height
@@ -192,15 +193,16 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-
+        print(" ######################## NEW KNOWLEDGE ######################## ")
         self.moves_made.add(cell)
         self.mark_safe(cell)
         self.knowledge.append(Sentence({cell}, 0))
 
         #add safe cells separately, otherwise it would need to be popped out and returned later
         neighbours = self.find_neighbour_cells(cell)
-        if neighbours and len(neighbours) >= count: 
-            self.knowledge.append(Sentence(neighbours, count))
+        sentence_neighbour = Sentence(neighbours, count)
+        if neighbours and len(neighbours) >= count and sentence_neighbour not in self.knowledge: 
+            self.knowledge.append(sentence_neighbour)
         elif neighbours and len(neighbours) < count: 
             #there cannot be more mines than there are neighbours
             raise ValueError
@@ -214,19 +216,23 @@ class MinesweeperAI():
             newKnowledge = False 
             #sort, so it only has to traverse nxn/2, instead of n x n
             knowledge_sorted = sorted(self.knowledge, key=lambda x: len(x.cells))
-
             for m, sentence_from in enumerate(knowledge_sorted):
                 for sentence_to in knowledge_sorted[m+1:]:
-
-                    if sentence_from.cells.issubset(sentence_to.cells) and sentence_from.count < sentence_to.count: 
-                        
+                    
+                    if sentence_from.cells.issubset(sentence_to.cells) and sentence_from.count <= sentence_to.count: 
                         cells_new = sentence_to.cells - sentence_from.cells
                         count_new = sentence_to.count - sentence_from.count
                         sentence_new = Sentence(cells_new, count_new)
 
+                        # print(f"Cell: {cell}")
+                        # print(f"To: \t {sentence_to.cells, sentence_to.count}")
+                        # print(f"From: \t {sentence_from.cells, sentence_from.count}")
+                        # print(f"New: \t {cells_new, count_new}")
+
+
                         #since its a set, repeated sentences could also be added. But the while loop would run infinite in this case, hence the condition
-                        if sentence_new not in self.knowledge: 
-                            self.knowledge.append(Sentence(cells_new, count_new))
+                        if sentence_new not in self.knowledge and len(sentence_new.cells) > 0: 
+                            self.knowledge.append(sentence_new)
                             newKnowledge = True
                         
                         if count_new == 0 and len(cells_new) > 0:
@@ -238,6 +244,8 @@ class MinesweeperAI():
                                 self.mark_mine(c)
 
             if not newKnowledge: break
+
+        print()
 
 
 
@@ -264,13 +272,12 @@ class MinesweeperAI():
         and self.moves_made, but should not modify any of those values.
         """
 
-        possibleMoves = []
-
-        for m in self.safes:
-            if m not in self.moves_made and m not in self.mines:
-                possibleMoves.append[m]
+        possibleMoves = list(self.safes - self.moves_made)
+        print(possibleMoves)
+        for m in possibleMoves:
+            if m not in self.mines:
+                return m
         
-        if possibleMoves: return possibleMoves[0]
         return None
 
 
@@ -283,19 +290,23 @@ class MinesweeperAI():
             2) are not known to be mines
         """
 
+        if len(self.safes) + len(self.mines) == self.height * self.width:
+            return None
+
         while True: 
             possibleMove = (random.randint(0,self.height-1),random.randint(0, self.width-1))
             possibleMovesChecked = set()
             
             #catch all to avoid endless loop
             if len(possibleMovesChecked) == (self.height * self.width):
-                print("no moves found")
+
                 return None
 
             if possibleMove not in self.moves_made and possibleMove not in self.mines and possibleMove not in possibleMovesChecked:
                 return possibleMove
 
             possibleMovesChecked.add(possibleMove)
+
 
 
     def find_neighbour_cells(self, cell):
@@ -307,7 +318,7 @@ class MinesweeperAI():
     
         for i in range(-1, 2):
             for j in range(-1,2):
-                if 0 <= (cell[0] +i) < self.height and 0 <= (cell[1] + j) < self.width and ((cell[0]+i, cell[1]+j) != cell):
+                if 0 <= (cell[0] +i) < self.height and 0 <= (cell[1] + j) < self.width and ((cell[0]+i, cell[1]+j) != cell) and (cell[0]+i, cell[1]+j) not in self.moves_made:
                     neighbours.add((cell[0]+i, cell[1]+j))
 
                 

@@ -49,6 +49,8 @@ lost = False
 # Show instructions initially
 instructions = True
 
+game.print()
+
 while True:
 
     # Check if game quit
