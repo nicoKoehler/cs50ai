@@ -106,14 +106,16 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be mines.
         """
-        raise NotImplementedError
+        if self.count == len(self.cells): return self.cells
 
     def known_safes(self):
         """
         Returns the set of all cells in self.cells known to be safe.
         """
 
-        raise NotImplementedError
+        if self.count == 0: return self.cells
+
+
 
     def mark_mine(self, cell):
         """
@@ -133,7 +135,7 @@ class Sentence():
         """
         
         if cell in self.cells:
-            self.cells = self.cells - cell
+            self.cells = self.cells - set(cell)
 
 
 class MinesweeperAI():
@@ -193,39 +195,60 @@ class MinesweeperAI():
 
         self.moves_made.add(cell)
         self.mark_safe(cell)
-        self.knowledge.append(Sentence(cell, 0))
+        self.knowledge.append(Sentence({cell}, 0))
+
         #add safe cells separately, otherwise it would need to be popped out and returned later
         neighbours = self.find_neighbour_cells(cell)
-        if neighbours: self.knowledge.append(Sentence(neighbours, count))
+        if neighbours and len(neighbours) >= count: 
+            self.knowledge.append(Sentence(neighbours, count))
+        elif neighbours and len(neighbours) < count: 
+            #there cannot be more mines than there are neighbours
+            raise ValueError
 
-        #sort, so it only has to traverse nxn/2, instead of n x n
-        knowledge_sorted = sorted(self.knowledge, key=lambda x: len(x.cells))
-        print(knowledge_sorted)
-        for m, sentence_from in enumerate(knowledge_sorted):
-            for sentence_to in knowledge_sorted[m+1:]:
-                print(m, sentence_from)
-                if sentence_from.cells in sentence_to.cells and sentence_from.count < sentence_to.count: 
-                    sentence_new = sentence_to.cells - sentence_from.cells
-                    count_new = sentence_to.count - sentence_from.count
+        
+        
+        #once a change has occured, the loop needs to run again to see if the new knowledge created can be deducted
+        newKnowledge = True
 
-                    self.knowledge.append(Sentence(sentence_new, count_new))
-                    
-                    if count_new == 0 and len(sentence_new) > 0:
-                        for c in sentence_new:
-                            self.mark_safe(c)
-                    
-                    elif count_new == len(sentence_new) and len(sentence_new) > 0:
-                        for c in sentence_new:
-                            self.mark_mine(c)
+        while newKnowledge:
+            newKnowledge = False 
+            #sort, so it only has to traverse nxn/2, instead of n x n
+            knowledge_sorted = sorted(self.knowledge, key=lambda x: len(x.cells))
 
-                    
+            for m, sentence_from in enumerate(knowledge_sorted):
+                for sentence_to in knowledge_sorted[m+1:]:
+
+                    if sentence_from.cells.issubset(sentence_to.cells) and sentence_from.count < sentence_to.count: 
+                        
+                        cells_new = sentence_to.cells - sentence_from.cells
+                        count_new = sentence_to.count - sentence_from.count
+                        sentence_new = Sentence(cells_new, count_new)
+
+                        #since its a set, repeated sentences could also be added. But the while loop would run infinite in this case, hence the condition
+                        if sentence_new not in self.knowledge: 
+                            self.knowledge.append(Sentence(cells_new, count_new))
+                            newKnowledge = True
+                        
+                        if count_new == 0 and len(cells_new) > 0:
+                            for c in cells_new:
+                                self.mark_safe(c)
+                        
+                        elif count_new == len(cells_new) and len(cells_new) > 0:
+                            for c in cells_new:
+                                self.mark_mine(c)
+
+            if not newKnowledge: break
 
 
 
+    def show_knowledge(self, knowledge=[]):
+        print("---Knowledge---")
+        if not knowledge: knowledge=self.knowledge
+        knowledge_sorted = sorted(knowledge, key = lambda x: len(x.cells))
+        for i,k in enumerate(knowledge):
+            print(f"{i}: {{{k}}}")
 
-    def show_knowledge(self):
-        for i,k in enumerate(self.knowledge):
-            print(f"{i+1}{{{k}}}")
+        print("---fin---")
 
 
 
@@ -240,7 +263,17 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
-        raise NotImplementedError
+
+        possibleMoves = []
+
+        for m in self.safes:
+            if m not in self.moves_made and m not in self.mines:
+                possibleMoves.append[m]
+        
+        if possibleMoves: return possibleMoves[0]
+        return None
+
+
 
     def make_random_move(self):
         """
@@ -249,7 +282,21 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
-        raise NotImplementedError
+
+        while True: 
+            possibleMove = (random.randint(0,self.height-1),random.randint(0, self.width-1))
+            possibleMovesChecked = set()
+            
+            #catch all to avoid endless loop
+            if len(possibleMovesChecked) == (self.height * self.width):
+                print("no moves found")
+                return None
+
+            if possibleMove not in self.moves_made and possibleMove not in self.mines and possibleMove not in possibleMovesChecked:
+                return possibleMove
+
+            possibleMovesChecked.add(possibleMove)
+
 
     def find_neighbour_cells(self, cell):
         """
