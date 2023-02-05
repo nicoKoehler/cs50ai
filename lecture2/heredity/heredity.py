@@ -63,16 +63,17 @@ def main():
     # Loop over all sets of people who might have the trait
     names = set(people)
 
-    print(powerset(names))
 
     for have_trait in powerset(names):
-
+   
         # Check if current set of people violates known information
         fails_evidence = any(
             (people[person]["trait"] is not None and
              people[person]["trait"] != (person in have_trait))
             for person in names
         )
+
+
         if fails_evidence:
             continue
 
@@ -81,7 +82,12 @@ def main():
             for two_genes in powerset(names - one_gene):
 
                 # Update probabilities with new joint probability
+                print("One Gene: ", one_gene)
+                print("Two Genes: ", two_genes)
+                print("Have Trait: ", have_trait)
+
                 p = joint_probability(people, one_gene, two_genes, have_trait)
+                sys.exit()
                 update(probabilities, one_gene, two_genes, have_trait, p)
 
     # Ensure probabilities sum to 1
@@ -142,7 +148,38 @@ def joint_probability(people, one_gene, two_genes, have_trait):
         * everyone in set `have_trait` has the trait, and
         * everyone not in set` have_trait` does not have the trait.
     """
-    raise NotImplementedError
+    #keep track of propabilities in this run
+    run_props = {person: 0 for person in people}
+
+    for person in people:
+
+
+        person_encode = encode_gene_trait(person, one_gene, two_genes, have_trait)
+
+        print(person, person_encode[0], person_encode[1], "  ==>  ", single_probability(people, person, person_encode[0], person_encode[1]))
+
+
+def single_probability(people, person, gene, trait):
+    prob = 0
+    #one parent implies having both
+    if not people[person]["mother"]: 
+        prob = PROBS["gene"][gene] * PROBS["trait"][gene][trait]
+    else: 
+        for parent in {people[person]["mother"], people[person]["father"]}:
+            pass
+
+    return prob
+
+
+def encode_gene_trait(person, one_gene, two_genes, have_trait):
+    if person in one_gene: person_gene = 1
+    elif person in two_genes: person_gene = 2
+    else: person_gene = 0
+
+    if person in have_trait: person_trait = True
+    else: person_trait = False
+
+    return (person_gene, person_trait)
 
 
 def update(probabilities, one_gene, two_genes, have_trait, p):
